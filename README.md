@@ -1,4 +1,4 @@
-# MGS-Wallpaper-Changer-Android
+# Mutant Garden Seeder Wallpaper Changer Android
 
 After installing the .apk, open the app and adjust the settings to your preferences.
 Click "Start Service" to start the wallpaper changing service.
