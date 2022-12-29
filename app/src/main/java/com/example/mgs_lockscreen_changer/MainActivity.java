@@ -2,6 +2,8 @@ package com.example.mgs_lockscreen_changer;
 
 
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,14 +13,11 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
-import android.widget.CheckBox;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import java.util.Objects;
-import java.util.concurrent.locks.Lock;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -28,6 +27,8 @@ public class MainActivity extends AppCompatActivity {
     Switch switchLH, bothCheckbox;
     String bothLockAndHome = "false";
     String LockOrHome = "false";
+    String updateIntervalString;
+    Integer updateIntervalMillis;
 
 
     @SuppressLint("MissingInflatedId")
@@ -71,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
         btnStartService.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                updateIntervalString = String.valueOf(eUpdateInterval.getText());
+                updateIntervalMillis = (Integer.parseInt(updateIntervalString)) * 60 * 60 * 24 * 1000;
                 startService();
             }
         });
@@ -91,11 +94,38 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.putExtra("_LockOrHome", LockOrHome);
 
         ContextCompat.startForegroundService(this, serviceIntent);
+
+        //schedule Alarm
+        scheduleRepeatingAlarm(updateIntervalMillis);
     }
 
     public void stopService() {
         Intent serviceIntent = new Intent(this, MyService.class);
         stopService(serviceIntent);
+        cancelAlarm();
+    }
+
+    private void scheduleRepeatingAlarm(long updateIntervalMillis) {
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+
+        Intent intent = new Intent(this, MyAlarm.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_MUTABLE);
+
+        Long updateIntervalMillisLong = new Long(updateIntervalMillis);
+
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), updateIntervalMillisLong, pendingIntent);
+
+        //Toast.makeText(MyService.this, "alarm scheduled", Toast.LENGTH_SHORT).show();
+    }
+
+    private void cancelAlarm() {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        Intent intent = new Intent(this, MyAlarm.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_MUTABLE);
+
+        alarmManager.cancel(pendingIntent);
+        //Toast.makeText(MyService.this, "alarm canceled", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -120,11 +150,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Store the data in the SharedPreference
-    // in the onPause() method
-    // When the user closes the application
-    // onPause() will be called
-    // and data will be stored
     @Override
     protected void onPause() {
         super.onPause();

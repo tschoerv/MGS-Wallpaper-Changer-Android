@@ -37,8 +37,6 @@ import java.util.Objects;
 public class MyService extends Service {
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
     String birthBlock = null;
-    String updateInterval = null;
-    long updateIntervalMillis = 0;
     String visibleCrop = null;
     String bothLockAndHome = null;
     String lockOrHome = null;
@@ -72,8 +70,6 @@ public class MyService extends Service {
             stopSelf();
 
         } else {
-            updateInterval = (String) extras.get("_updateInterval");
-            updateIntervalMillis = Integer.parseInt(updateInterval) * 1000;
             visibleCrop = (String) extras.get("_visibleCrop");
             birthBlock = (String) extras.get("_birthBlock");
             bothLockAndHome = (String) extras.get("_bothLockAndHome");
@@ -90,18 +86,11 @@ public class MyService extends Service {
     @Override
     public void onDestroy() {
         AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        Intent intent = new Intent(this, MyService.class);
-        intent.putExtra("_updateInterval", updateInterval);
-        intent.putExtra("_visibleCrop", visibleCrop);
-        intent.putExtra("_birthBlock", birthBlock);
-        intent.putExtra("_bothLockAndHome", bothLockAndHome);
-        intent.putExtra("_LockOrHome", lockOrHome);
-        PendingIntent pendingIntent = PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_MUTABLE);
+        Intent intent = new Intent(this, MyAlarm.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_MUTABLE);
 
         alarmManager.cancel(pendingIntent);
         //Toast.makeText(MyService.this, "alarm canceled", Toast.LENGTH_SHORT).show();
-
-        stopSelf();
 
         super.onDestroy();
     }
@@ -138,9 +127,7 @@ public class MyService extends Service {
             WallpaperManager wallpaperManager = WallpaperManager.getInstance(MyService.this);
             try {
                 if (bitmap == null){
-                    //Schedule the repeating alarm
-                    scheduleRepeatingAlarm();
-                    //Toast.makeText(MyService.this, "Bitmap null", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(MyService.this, "failed to download image", Toast.LENGTH_SHORT).show();
                 }
                 else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     //Set wallpaper on Lockscreen
@@ -157,8 +144,6 @@ public class MyService extends Service {
                         wallpaperManager.setBitmap(bitmap, new Rect(Integer.parseInt(visibleCrop), 0, bitmap.getWidth(), bitmap.getHeight()), true, WallpaperManager.FLAG_SYSTEM );
                         //Toast.makeText(MyService.this, "homescreen set successfully", Toast.LENGTH_SHORT).show();
                     }
-                    //Schedule the repeating alarm
-                    scheduleRepeatingAlarm();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -166,24 +151,6 @@ public class MyService extends Service {
             }
         }
 
-    }
-    private void scheduleRepeatingAlarm() {
-
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-
-        Intent intent = new Intent(this, MyService.class);
-        intent.putExtra("_updateInterval", updateInterval);
-        intent.putExtra("_visibleCrop", visibleCrop);
-        intent.putExtra("_birthBlock", birthBlock);
-        intent.putExtra("_bothLockAndHome", bothLockAndHome);
-        intent.putExtra("_LockOrHome", lockOrHome);
-        PendingIntent pendingIntent = PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_MUTABLE);
-
-        alarmManager.cancel(pendingIntent);
-
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), updateIntervalMillis, pendingIntent);
-
-        //Toast.makeText(MyService.this, "alarm scheduled", Toast.LENGTH_SHORT).show();
     }
 
     private void createNotificationChannel() {

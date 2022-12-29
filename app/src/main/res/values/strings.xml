@@ -12,7 +12,7 @@
     <string name="mutant_garden_seeder_auto_wallpaper_changer">Mutant Garden Seeder Auto Wallpaper Changer</string>
     <string name="birth_block">Birth block:</string>
     <string name="_0_700">0-700</string>
-    <string name="seconds">in seconds</string>
+    <string name="seconds">in days</string>
     <string name="userBirthBlock">12884106</string>
     <string name="userUpdateInterval">84600</string>
     <string name="userVisibleCrop">600</string>
