@@ -15,7 +15,7 @@
         android:layout_marginBottom="32dp"
         android:ems="10"
         android:hint="@string/seconds"
-        android:inputType="number"
+        android:inputType="numberDecimal"
 
         android:textSize="14sp"
         app:layout_constraintBottom_toTopOf="@+id/switch1"
@@ -170,6 +170,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/switch1"
         app:layout_constraintVertical_bias="0.025" />
+
+    <TextView
+        android:id="@+id/lastUpdate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="last wallpaper update:"
+        app:layout_constraintBottom_toTopOf="@+id/buttonStartService"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/bothCheckbox" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

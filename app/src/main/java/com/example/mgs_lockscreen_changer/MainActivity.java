@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -23,12 +24,11 @@ import java.util.Objects;
 public class MainActivity extends AppCompatActivity {
     Button btnStartService, btnStopService;
     EditText eUpdateInterval, eBirthBlock, eVisibleCrop;
+    TextView tLastUpdate;
     @SuppressLint("UseSwitchCompatOrMaterialCode")
     Switch switchLH, bothCheckbox;
     String bothLockAndHome = "false";
     String LockOrHome = "false";
-    String updateIntervalString;
-    Integer updateIntervalMillis;
 
 
     @SuppressLint("MissingInflatedId")
@@ -43,6 +43,8 @@ public class MainActivity extends AppCompatActivity {
         eUpdateInterval = findViewById(R.id.editUpdateInterval);
         eVisibleCrop = findViewById(R.id.editVisibleCrop);
         eBirthBlock = findViewById(R.id.editBirthBlock);
+
+        tLastUpdate = findViewById(R.id.lastUpdate);
 
         switchLH = findViewById(R.id.switch1);
         bothCheckbox = findViewById(R.id.bothCheckbox);
@@ -69,11 +71,18 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        tLastUpdate.setOnClickListener(new View.OnClickListener(){
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onClick(View v) {
+                SharedPreferences sh = getSharedPreferences("userPref", Context.MODE_PRIVATE);
+                tLastUpdate.setText("last wallpaper update: " + sh.getString("_lastUpdate",""));
+            }
+        });
+
         btnStartService.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                updateIntervalString = String.valueOf(eUpdateInterval.getText());
-                updateIntervalMillis = (Integer.parseInt(updateIntervalString)) * 60 * 60 * 24 * 1000;
                 startService();
             }
         });
@@ -86,17 +95,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startService() {
+        Double updateInterval = Double.valueOf(eUpdateInterval.getText().toString()).doubleValue()* 60 * 60 * 24 * 1000;
+        Integer updateIntervalMillis = updateInterval.intValue();
+        String updateIntervalString = Integer.toString(updateIntervalMillis);
+
+        SharedPreferences sharedPreferences = getSharedPreferences("userPref", MODE_PRIVATE);
+        SharedPreferences.Editor myEdit = sharedPreferences.edit();
+        myEdit.putString("_updateInterval", updateIntervalString);
+        myEdit.apply();
+
         Intent serviceIntent = new Intent(this, MyService.class);
-        serviceIntent.putExtra("_updateInterval", String.valueOf(eUpdateInterval.getText()));
+        serviceIntent.putExtra("_updateInterval", updateIntervalString);
         serviceIntent.putExtra("_visibleCrop", String.valueOf(eVisibleCrop.getText()));
         serviceIntent.putExtra("_birthBlock", String.valueOf(eBirthBlock.getText()));
         serviceIntent.putExtra("_bothLockAndHome", bothLockAndHome);
         serviceIntent.putExtra("_LockOrHome", LockOrHome);
 
-        ContextCompat.startForegroundService(this, serviceIntent);
-
-        //schedule Alarm
-        scheduleRepeatingAlarm(updateIntervalMillis);
+        startService(serviceIntent);
     }
 
     public void stopService() {
@@ -105,19 +120,7 @@ public class MainActivity extends AppCompatActivity {
         cancelAlarm();
     }
 
-    private void scheduleRepeatingAlarm(long updateIntervalMillis) {
 
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-
-        Intent intent = new Intent(this, MyAlarm.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_MUTABLE);
-
-        Long updateIntervalMillisLong = new Long(updateIntervalMillis);
-
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), updateIntervalMillisLong, pendingIntent);
-
-        //Toast.makeText(MyService.this, "alarm scheduled", Toast.LENGTH_SHORT).show();
-    }
 
     private void cancelAlarm() {
         AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
@@ -125,22 +128,19 @@ public class MainActivity extends AppCompatActivity {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_MUTABLE);
 
         alarmManager.cancel(pendingIntent);
-        //Toast.makeText(MyService.this, "alarm canceled", Toast.LENGTH_SHORT).show();
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onResume() {
         super.onResume();
 
-        // Fetching the stored data
-        // from the SharedPreference
         SharedPreferences sh = getSharedPreferences("userPref", Context.MODE_PRIVATE);
 
-        // Setting the fetched data
-        // in the EditTexts
-        eUpdateInterval.setText(sh.getString("_updateInterval", ""));
+        eUpdateInterval.setText(sh.getString("_updateIntervalDec", ""));
         eVisibleCrop.setText(sh.getString("_visibleCrop", ""));
         eBirthBlock.setText(sh.getString("_birthBlock", ""));
+        tLastUpdate.setText("last wallpaper update: " + sh.getString("_lastUpdate",""));
 
         if (Objects.equals(sh.getString("_bothLockAndHome", ""), "true")) {
             bothCheckbox.setChecked(true);
@@ -154,18 +154,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
 
-        // Creating a shared pref object
-        // with a file name "MySharedPref"
-        // in private mode
         SharedPreferences sharedPreferences = getSharedPreferences("userPref", MODE_PRIVATE);
         SharedPreferences.Editor myEdit = sharedPreferences.edit();
 
-        // write all the data entered by the user in SharedPreference and apply
-        myEdit.putString("_updateInterval", eUpdateInterval.getText().toString());
+        myEdit.putString("_updateIntervalDec", eUpdateInterval.getText().toString());
         myEdit.putString("_visibleCrop", eVisibleCrop.getText().toString());
         myEdit.putString("_birthBlock", eBirthBlock.getText().toString());
         myEdit.putString("_bothLockAndHome", bothLockAndHome);
         myEdit.putString("_lockOrHome", LockOrHome);
+
         myEdit.apply();
     }
 }

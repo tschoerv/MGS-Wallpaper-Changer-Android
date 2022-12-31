@@ -22,7 +22,7 @@ public class startupOnBootUpReceiver extends BroadcastReceiver {
             serviceIntent.putExtra("_birthBlock", sh.getString("_birthBlock", ""));
             serviceIntent.putExtra("_bothLockAndHome", sh.getString("_bothLockAndHome", ""));
             serviceIntent.putExtra("_LockOrHome", sh.getString("_lockOrHome", ""));
-            ContextCompat.startForegroundService(context, serviceIntent);
+            context.startService(serviceIntent);
         }
     }
 }
