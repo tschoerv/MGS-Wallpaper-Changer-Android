@@ -14,6 +14,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -112,12 +113,14 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.putExtra("_LockOrHome", LockOrHome);
 
         startService(serviceIntent);
+        Toast.makeText(this, "Service started", Toast.LENGTH_SHORT).show();
     }
 
     public void stopService() {
         Intent serviceIntent = new Intent(this, MyService.class);
         stopService(serviceIntent);
         cancelAlarm();
+        Toast.makeText(this, "Service stopped", Toast.LENGTH_SHORT).show();
     }
 
 
