@@ -1,6 +1,6 @@
 # Mutant Garden Seeder Wallpaper Changer Android
 
-After installing the .apk, go to settings -> apps -> MGS Wallpaper Changer -> Remove permissions if app is unused: OFF !!
+After installing the .apk, go to Settings -> Apps -> MGS Wallpaper Changer -> Remove permissions if app is unused: OFF !!
 This is very important otherwise the system kills permissions before the next wallpaper update.
 Open the app and adjust the settings to your preferences (update interval takes decimals too).
 Click "Start Service" to start the wallpaper changing service.
