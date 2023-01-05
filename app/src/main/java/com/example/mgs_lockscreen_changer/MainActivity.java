@@ -2,11 +2,19 @@ package com.example.mgs_lockscreen_changer;
 
 
 import android.annotation.SuppressLint;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
+import android.app.AlertDialog;
+import android.app.WallpaperManager;
 import android.content.Context;
-import android.content.Intent;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Rect;
+import android.icu.text.SimpleDateFormat;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -17,9 +25,25 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
+import androidx.transition.Transition;
+import androidx.work.Constraints;
+import androidx.work.Data;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Date;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -49,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
 
         switchLH = findViewById(R.id.switch1);
         bothCheckbox = findViewById(R.id.bothCheckbox);
+
+
 
         bothCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -90,47 +116,85 @@ public class MainActivity extends AppCompatActivity {
         btnStopService.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stopService();
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("MGS Wallpaper Changer")
+                        .setMessage("Do you really want to stop the service?")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                stopService();
+                            }})
+                        .setNegativeButton(android.R.string.no, null).show();
             }
         });
     }
 
     public void startService() {
-        Double updateInterval = Double.valueOf(eUpdateInterval.getText().toString()).doubleValue()* 60 * 60 * 24 * 1000;
-        Integer updateIntervalMillis = updateInterval.intValue();
-        String updateIntervalString = Integer.toString(updateIntervalMillis);
+        if(checkWorkerState() == true){
+            Toast.makeText(this, "Service already running", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            Double updateInterval = Double.valueOf(eUpdateInterval.getText().toString()) * 60 * 60 * 24 * 1000;
+            Integer updateIntervalMillis = updateInterval.intValue();
+            String updateIntervalString = Integer.toString(updateIntervalMillis);
 
-        SharedPreferences sharedPreferences = getSharedPreferences("userPref", MODE_PRIVATE);
-        SharedPreferences.Editor myEdit = sharedPreferences.edit();
-        myEdit.putString("_updateInterval", updateIntervalString);
-        myEdit.apply();
+            Double flexInterval = updateInterval * 0.1;
+            Integer flexIntervalMillis = flexInterval.intValue();
 
-        Intent serviceIntent = new Intent(this, MyService.class);
-        serviceIntent.putExtra("_updateInterval", updateIntervalString);
-        serviceIntent.putExtra("_visibleCrop", String.valueOf(eVisibleCrop.getText()));
-        serviceIntent.putExtra("_birthBlock", String.valueOf(eBirthBlock.getText()));
-        serviceIntent.putExtra("_bothLockAndHome", bothLockAndHome);
-        serviceIntent.putExtra("_LockOrHome", LockOrHome);
+            SharedPreferences sharedPreferences = getSharedPreferences("userPref", MODE_PRIVATE);
+            SharedPreferences.Editor myEdit = sharedPreferences.edit();
+            myEdit.putString("_updateInterval", updateIntervalString);
+            myEdit.apply();
 
-        startService(serviceIntent);
-        Toast.makeText(this, "Service started", Toast.LENGTH_SHORT).show();
+            Constraints.Builder builder = new Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED);
+
+            // Passing params
+            Data.Builder data = new Data.Builder();
+            data.putString("_updateInterval", updateIntervalString);
+            data.putString("_visibleCrop", String.valueOf(eVisibleCrop.getText()));
+            data.putString("_birthBlock", String.valueOf(eBirthBlock.getText()));
+            data.putString("_bothLockAndHome", bothLockAndHome);
+            data.putString("_LockOrHome", LockOrHome);
+
+            final PeriodicWorkRequest mRequest = new PeriodicWorkRequest.Builder(MyWorker.class, updateIntervalMillis, TimeUnit.MILLISECONDS, flexIntervalMillis, TimeUnit.MILLISECONDS)
+                    .setInputData(data.build())
+                    .setConstraints(builder.build())
+                    .build();
+
+
+            WorkManager.getInstance(MainActivity.this).enqueueUniquePeriodicWork("updateWorker",
+                    ExistingPeriodicWorkPolicy.KEEP, mRequest);
+
+            new MainActivity.SetWallpaperTask().execute("https://seeder.mutant.garden/api/mutant/" + eBirthBlock.getText().toString() + "/raster/now");
+
+            Toast.makeText(this, "Service started", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void stopService() {
-        Intent serviceIntent = new Intent(this, MyService.class);
-        stopService(serviceIntent);
-        cancelAlarm();
+        WorkManager.getInstance(MainActivity.this). cancelUniqueWork("updateWorker");
         Toast.makeText(this, "Service stopped", Toast.LENGTH_SHORT).show();
     }
+    public boolean checkWorkerState() {
 
-
-
-    private void cancelAlarm() {
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        Intent intent = new Intent(this, MyAlarm.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_MUTABLE);
-
-        alarmManager.cancel(pendingIntent);
+        ListenableFuture<List<WorkInfo>> status = WorkManager.getInstance(MainActivity.this).getWorkInfosForUniqueWork("updateWorker");
+        try {
+            boolean running = false;
+            List<WorkInfo> workInfoList = status.get();
+            for (WorkInfo workInfo : workInfoList) {
+                WorkInfo.State state = workInfo.getState();
+                running = state == WorkInfo.State.RUNNING | state == WorkInfo.State.ENQUEUED;
+            }
+            return running;
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+            return false;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -166,6 +230,76 @@ public class MainActivity extends AppCompatActivity {
         myEdit.putString("_bothLockAndHome", bothLockAndHome);
         myEdit.putString("_lockOrHome", LockOrHome);
 
+        myEdit.apply();
+    }
+
+    private class SetWallpaperTask extends AsyncTask<String, Void, Bitmap> {
+        @Override
+        protected Bitmap doInBackground(String... params) {
+            // Get the image URL
+            String imageUrl = params[0];
+
+            try {
+                InputStream inputStream = new URL(imageUrl).openStream();
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                inputStream.close();
+
+                Bitmap imageWithBG = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(),bitmap.getConfig());  // Create another image the same size
+                imageWithBG.eraseColor(Color.WHITE);  // set the background to white
+                Canvas canvas = new Canvas(imageWithBG);  // create a canvas to draw on the new image
+                canvas.drawBitmap(bitmap, 0f, 0f, null); // draw downloaded image on the background
+                bitmap.recycle();  // clear out old image
+
+                return imageWithBG;
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap bitmap) {
+            // Set the image as the wallpaper
+            WallpaperManager wallpaperManager = WallpaperManager.getInstance(MainActivity.this);
+            try {
+                if (bitmap.getWidth() == 0 || bitmap.getHeight() == 0){
+                    //Toast.makeText(MyService.this, "failed to download image", Toast.LENGTH_SHORT).show();
+                }
+                else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    //Set wallpaper on Lockscreen
+                    if (Objects.equals(bothLockAndHome, "true")) {
+                        wallpaperManager.setBitmap(bitmap, new Rect(Integer.parseInt(eVisibleCrop.getText().toString()), 0, bitmap.getWidth(), bitmap.getHeight()), true );
+                        saveLastUpdateTime();
+                    }
+                    else if (Objects.equals(bothLockAndHome, "false") && Objects.equals(LockOrHome, "false")){
+                        wallpaperManager.setBitmap(bitmap, new Rect(Integer.parseInt(eVisibleCrop.getText().toString()), 0, bitmap.getWidth(), bitmap.getHeight()), true, WallpaperManager.FLAG_LOCK );
+                        saveLastUpdateTime();
+
+                    }
+                    else if (Objects.equals(bothLockAndHome, "false") && Objects.equals(LockOrHome, "true")){
+                        wallpaperManager.setBitmap(bitmap, new Rect(Integer.parseInt(eVisibleCrop.getText().toString()), 0, bitmap.getWidth(), bitmap.getHeight()), true, WallpaperManager.FLAG_SYSTEM );
+                        saveLastUpdateTime();
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+    private void saveLastUpdateTime() {
+        SimpleDateFormat s;
+        String format = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            s = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+            format = s.format(new Date());
+        }
+
+        SharedPreferences sharedPreferences = MainActivity.this.getSharedPreferences("userPref", MODE_PRIVATE);
+        SharedPreferences.Editor myEdit = sharedPreferences.edit();
+
+        myEdit.putString("_lastUpdate", format);
         myEdit.apply();
     }
 }

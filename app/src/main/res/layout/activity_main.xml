@@ -24,7 +24,7 @@
         app:layout_constraintStart_toEndOf="@+id/textUpdateInterval"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.879" />
+        app:layout_constraintVertical_bias="1.0" />
 
     <EditText
         android:id="@+id/editVisibleCrop"
@@ -41,7 +41,8 @@
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/textVisibleCrop"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/editBirthBlock" />
+        app:layout_constraintTop_toBottomOf="@+id/editBirthBlock"
+        app:layout_constraintVertical_bias="0.5" />
 
     <TextView
         android:id="@+id/textBirthBlock"
@@ -72,7 +73,7 @@
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/bothCheckbox"
-        app:layout_constraintVertical_bias="0.111" />
+        app:layout_constraintVertical_bias="0.278" />
 
     <Button
         android:id="@+id/buttonStopService"
@@ -86,10 +87,9 @@
         app:backgroundTint="#ffff0000"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/buttonStartService"
-        app:layout_constraintVertical_bias="0.109" />
+        app:layout_constraintVertical_bias="0.171" />
 
     <EditText
         android:id="@+id/editBirthBlock"
@@ -154,10 +154,10 @@
         android:text="@string/lockscreen_homescreen"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.495"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/editBirthBlock"
-        app:layout_constraintVertical_bias="0.071"
+        app:layout_constraintVertical_bias="0.0"
         tools:ignore="UseSwitchCompatOrMaterialXml" />
 
     <Switch
@@ -178,8 +178,10 @@
         android:text="last wallpaper update:"
         app:layout_constraintBottom_toTopOf="@+id/buttonStartService"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/bothCheckbox" />
+        app:layout_constraintTop_toBottomOf="@+id/bothCheckbox"
+        app:layout_constraintVertical_bias="0.484" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.mgs_lockscreen_changer">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
-    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -15,11 +12,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MGS_lockscreen_changer">
-        <service
-            android:name=".MyService"
-            android:enabled="true"
-            android:exported="true">
-        </service>
 
         <activity
             android:name=".MainActivity"
@@ -30,23 +22,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <receiver
-            android:name=".startupOnBootUpReceiver"
-            android:enabled="true"
-            android:exported="true"
-            android:label="auto startup @ boot receiver">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".MyAlarm"
-            android:enabled="true"
-            android:exported="true"
-            android:label="Alarm receiver">
-        </receiver>
     </application>
 
 </manifest>
