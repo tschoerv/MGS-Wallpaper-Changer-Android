@@ -16,4 +16,5 @@
     <string name="userBirthBlock">12884106</string>
     <string name="userUpdateInterval">84600</string>
     <string name="userVisibleCrop">600</string>
+    <string name="last_wallpaper_update">Last wallpaper update: %1$s</string>
 </resources>

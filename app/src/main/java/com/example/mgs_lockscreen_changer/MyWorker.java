@@ -12,12 +12,10 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.icu.text.SimpleDateFormat;
 import android.os.Build;
-import android.widget.Toast;
 
-
+import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
-import androidx.annotation.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +30,7 @@ public class MyWorker extends Worker {
     String bothLockAndHome = null;
     String lockOrHome = null;
     Integer updateIntervalMillis;
-    Context context = getApplicationContext();
+    final Context context = getApplicationContext();
 
 
     public MyWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
@@ -43,23 +41,24 @@ public class MyWorker extends Worker {
     @Override
     public Result doWork() {
         String updateIntervalString = getInputData().getString("_updateInterval");
-        updateIntervalMillis = (Integer.parseInt(updateIntervalString));
+        if (updateIntervalString != null) {
+            updateIntervalMillis = (Integer.parseInt(updateIntervalString));
+        }
         visibleCrop = getInputData().getString("_visibleCrop");
         birthBlock = getInputData().getString("_birthBlock");
         bothLockAndHome = getInputData().getString("_bothLockAndHome");
         lockOrHome = getInputData().getString("_LockOrHome");
 
 
-    // Start the AsyncTask to retrieve and set the image
-      SetWallpaperTask("https://seeder.mutant.garden/api/mutant/" + birthBlock + "/raster/now");
-        return Result.Success.success();
+    // Start the task to retrieve and set the image
+        setWallpaperTask("https://seeder.mutant.garden/api/mutant/" + birthBlock + "/raster/now");
+        return Result.success();
     }
 
-    private void SetWallpaperTask(String _imgURL) {
-            String imageUrl = _imgURL;
+    private void setWallpaperTask(String _imgURL) {
 
-            try {
-                InputStream inputStream = new URL(imageUrl).openStream();
+        try {
+                InputStream inputStream = new URL(_imgURL).openStream();
                 Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
                 inputStream.close();
 
@@ -72,10 +71,7 @@ public class MyWorker extends Worker {
                 // Set the image as the wallpaper
                 WallpaperManager wallpaperManager = WallpaperManager.getInstance(getApplicationContext());
 
-                if (bitmap.getWidth() == 0 || bitmap.getHeight() == 0){
-                    //Toast.makeText(MyService.this, "failed to download image", Toast.LENGTH_SHORT).show();
-                }
-                else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+               if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     //Set wallpaper on both screens
                     if (Objects.equals(bothLockAndHome, "true")) {
                         wallpaperManager.setBitmap(imageWithBG, new Rect(Integer.parseInt(visibleCrop), 0, imageWithBG.getWidth(), imageWithBG.getHeight()), true );
@@ -87,7 +83,7 @@ public class MyWorker extends Worker {
                         saveLastUpdateTime();
 
                     }
-                    //Set wallpaper on Homescreen
+                    //Set wallpaper on Home-screen
                     else if (Objects.equals(bothLockAndHome, "false") && Objects.equals(lockOrHome, "true")){
                         wallpaperManager.setBitmap(imageWithBG, new Rect(Integer.parseInt(visibleCrop), 0, imageWithBG.getWidth(), imageWithBG.getHeight()), true, WallpaperManager.FLAG_SYSTEM );
                         saveLastUpdateTime();

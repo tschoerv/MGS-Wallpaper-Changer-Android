@@ -146,7 +146,7 @@
         app:layout_constraintTop_toTopOf="@+id/editUpdateInterval"
         app:layout_constraintVertical_bias="0.517" />
 
-    <Switch
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switch1"
         android:layout_width="211dp"
         android:layout_height="48dp"
@@ -160,7 +160,7 @@
         app:layout_constraintVertical_bias="0.0"
         tools:ignore="UseSwitchCompatOrMaterialXml" />
 
-    <Switch
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/bothCheckbox"
         android:layout_width="211dp"
         android:layout_height="48dp"
