@@ -12,8 +12,11 @@ import android.graphics.Rect;
 import android.icu.text.SimpleDateFormat;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,6 +32,9 @@ import androidx.work.WorkManager;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -43,11 +49,12 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
     Button btnStartService, btnStopService;
-    EditText eUpdateInterval, eBirthBlock, eVisibleCrop;
+    EditText eUpdateInterval, eBirthBlock, eCropLeft, eCropRight;
     TextView tLastUpdate;
     SwitchCompat switchLH, bothCheckbox;
     String bothLockAndHome = "false";
     String LockOrHome = "false";
+    ImageView imageViewUncropped;
 
 
 
@@ -60,7 +67,8 @@ public class MainActivity extends AppCompatActivity {
         btnStopService = findViewById(R.id.buttonStopService);
 
         eUpdateInterval = findViewById(R.id.editUpdateInterval);
-        eVisibleCrop = findViewById(R.id.editVisibleCrop);
+        eCropLeft = findViewById(R.id.editCropLeft);
+        eCropRight = findViewById(R.id.editCropRight);
         eBirthBlock = findViewById(R.id.editBirthBlock);
 
         tLastUpdate = findViewById(R.id.lastUpdate);
@@ -68,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
         switchLH = findViewById(R.id.switch1);
         bothCheckbox = findViewById(R.id.bothCheckbox);
 
+        imageViewUncropped = findViewById(R.id.imageView);
 
 
         bothCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -93,12 +102,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnStartService.setOnClickListener(v -> startService());
-        btnStopService.setOnClickListener(v -> new AlertDialog.Builder(MainActivity.this)
+        btnStopService.setOnClickListener(v -> {if(checkWorkerState()){new AlertDialog.Builder(MainActivity.this)
                 .setTitle("MGS Wallpaper Changer")
                 .setMessage("Do you really want to stop the service?")
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setPositiveButton(android.R.string.yes, (dialog, whichButton) -> stopService())
-                .setNegativeButton(android.R.string.no, null).show());
+                .setNegativeButton(android.R.string.no, null).show();}});
     }
 
     public void startService() {
@@ -124,7 +133,8 @@ public class MainActivity extends AppCompatActivity {
             // Passing params
             Data.Builder data = new Data.Builder();
             data.putString("_updateInterval", updateIntervalString);
-            data.putString("_visibleCrop", String.valueOf(eVisibleCrop.getText()));
+            data.putString("_cropLeft", String.valueOf(eCropLeft.getText()));
+            data.putString("_cropRight", String.valueOf(eCropRight.getText()));
             data.putString("_birthBlock", String.valueOf(eBirthBlock.getText()));
             data.putString("_bothLockAndHome", bothLockAndHome);
             data.putString("_LockOrHome", LockOrHome);
@@ -170,11 +180,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        loadImageIntoImageView();
 
         SharedPreferences sh = getSharedPreferences("userPref", Context.MODE_PRIVATE);
 
         eUpdateInterval.setText(sh.getString("_updateIntervalDec", ""));
-        eVisibleCrop.setText(sh.getString("_visibleCrop", ""));
+        eCropLeft.setText(sh.getString("_cropLeft", ""));
+        eCropRight.setText(sh.getString("_cropRight", ""));
         eBirthBlock.setText(sh.getString("_birthBlock", ""));
         String lastUpdate = getString(R.string.last_wallpaper_update, sh.getString("_lastUpdate",""));
         tLastUpdate.setText(lastUpdate);
@@ -195,7 +207,8 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor myEdit = sharedPreferences.edit();
 
         myEdit.putString("_updateIntervalDec", eUpdateInterval.getText().toString());
-        myEdit.putString("_visibleCrop", eVisibleCrop.getText().toString());
+        myEdit.putString("_cropLeft", eCropLeft.getText().toString());
+        myEdit.putString("_cropRight", eCropRight.getText().toString());
         myEdit.putString("_birthBlock", eBirthBlock.getText().toString());
         myEdit.putString("_bothLockAndHome", bothLockAndHome);
         myEdit.putString("_lockOrHome", LockOrHome);
@@ -203,49 +216,82 @@ public class MainActivity extends AppCompatActivity {
         myEdit.apply();
     }
 
+
     private void setWallpaperTask(String _imgURL) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
-        try {
-            InputStream inputStream = new URL(_imgURL).openStream();
-            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-            inputStream.close();
+            try {
+                InputStream inputStream = new URL(_imgURL).openStream();
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                inputStream.close();
 
-            Bitmap imageWithBG = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(),bitmap.getConfig());  // Create another image the same size
-            imageWithBG.eraseColor(Color.WHITE);  // set the background to white
-            Canvas canvas = new Canvas(imageWithBG);  // create a canvas to draw on the new image
-            canvas.drawBitmap(bitmap, 0f, 0f, null); // draw downloaded image on the background
-            bitmap.recycle();  // clear out old image
+                // Determine the amount to crop from the left and right sides
+                int cropLeft = 0;
+                if(eCropLeft != null && !eCropLeft.getText().toString().isEmpty()){
+                    cropLeft = Integer.parseInt(eCropLeft.getText().toString());
+                }
 
-            // Set the image as the wallpaper
-            WallpaperManager wallpaperManager = WallpaperManager.getInstance(getApplicationContext());
+                int cropRight = 0;
+                if(eCropRight != null && !eCropRight.getText().toString().isEmpty()){
+                    cropRight = Integer.parseInt(eCropRight.getText().toString());
+                }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                //Set wallpaper on both screens
-                if (Objects.equals(bothLockAndHome, "true")) {
-                    wallpaperManager.setBitmap(imageWithBG, new Rect(Integer.parseInt(eVisibleCrop.getText().toString()), 0, imageWithBG.getWidth(), imageWithBG.getHeight()), true );
+                // Ensure cropLeft and cropRight are within the bitmap's width
+                cropLeft = Math.min(cropLeft, bitmap.getWidth());
+                cropRight = Math.min(cropRight, bitmap.getWidth() - cropLeft);
+
+                // Create a source rectangle from cropLeft to the width minus cropRight
+                Rect src = new Rect(cropLeft, 0, bitmap.getWidth() - cropRight, bitmap.getHeight());
+
+                // Create another image of the size of the src rectangle with a white background
+                Bitmap imageWithBG = Bitmap.createBitmap(src.width(), src.height(), bitmap.getConfig());
+                imageWithBG.eraseColor(Color.WHITE);
+                Canvas canvas = new Canvas(imageWithBG);
+                // Draw only the portion of the bitmap defined by src, scaled to fit the new bitmap
+                canvas.drawBitmap(bitmap, src, new Rect(0, 0, src.width(), src.height()), null);
+
+
+                // Convert the bitmap to a file
+                File wallpaperFile = saveBitmapToFile(imageWithBG);
+
+                WallpaperManager wallpaperManager = WallpaperManager.getInstance(getApplicationContext());
+
+                // Set the image as the wallpaper based on user choice
+                try (InputStream fileInputStream = new FileInputStream(wallpaperFile)) {
+                    if (Objects.equals(bothLockAndHome, "true")) {
+                        wallpaperManager.setStream(fileInputStream);
+                    } else if (Objects.equals(LockOrHome, "true")) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            wallpaperManager.setStream(fileInputStream, null, true, WallpaperManager.FLAG_SYSTEM);
+                        }
+                    } else {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            wallpaperManager.setStream(fileInputStream, null, true, WallpaperManager.FLAG_LOCK);
+                        }
+                    }
                     saveLastUpdateTime();
                 }
-                //Set wallpaper on Lockscreen
-                else if (Objects.equals(bothLockAndHome, "false") && Objects.equals(LockOrHome, "false")){
-                    wallpaperManager.setBitmap(imageWithBG, new Rect(Integer.parseInt(eVisibleCrop.getText().toString()), 0, imageWithBG.getWidth(), imageWithBG.getHeight()), true, WallpaperManager.FLAG_LOCK );
-                    saveLastUpdateTime();
 
-                }
-                //Set wallpaper on Home-screen
-                else if (Objects.equals(bothLockAndHome, "false") && Objects.equals(LockOrHome, "true")){
-                    wallpaperManager.setBitmap(imageWithBG, new Rect(Integer.parseInt(eVisibleCrop.getText().toString()), 0, imageWithBG.getWidth(), imageWithBG.getHeight()), true, WallpaperManager.FLAG_SYSTEM );
-                    saveLastUpdateTime();
-                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         });
         executor.shutdown();
     }
 
 
+
+    private File saveBitmapToFile(Bitmap bitmap) throws IOException {
+        // Create a file in the app's cache directory
+        File cacheDir = getApplicationContext().getCacheDir();
+        File wallpaperFile = new File(cacheDir, "wallpaper.png");
+
+        try (FileOutputStream out = new FileOutputStream(wallpaperFile)) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // PNG is a lossless format, the compression factor (100) is ignored
+        }
+
+        return wallpaperFile;
+    }
 
     private void saveLastUpdateTime() {
         SimpleDateFormat s;
@@ -260,5 +306,26 @@ public class MainActivity extends AppCompatActivity {
 
         myEdit.putString("_lastUpdate", format);
         myEdit.apply();
+    }
+
+    private void loadImageIntoImageView() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler handler = new Handler(Looper.getMainLooper());
+
+        executor.execute(() -> {
+            File cacheDir = getApplicationContext().getCacheDir();
+            File wallpaperFile = new File(cacheDir, "wallpaper.png");
+
+            if (wallpaperFile.exists()) {
+                Bitmap bitmap = BitmapFactory.decodeFile(wallpaperFile.getAbsolutePath());
+                handler.post(() -> {
+                    // Ensure ImageView and Activity are still valid
+                    if (imageViewUncropped != null && !isFinishing()) {
+                        imageViewUncropped.setImageBitmap(bitmap);
+                    }
+                });
+            }
+        });
+        executor.shutdown();
     }
 }

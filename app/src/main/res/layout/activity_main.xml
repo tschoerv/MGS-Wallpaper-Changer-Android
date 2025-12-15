@@ -10,39 +10,35 @@
         android:id="@+id/editUpdateInterval"
         android:layout_width="100dp"
         android:layout_height="48dp"
-        android:layout_marginStart="182dp"
-        android:layout_marginEnd="93dp"
-        android:layout_marginBottom="32dp"
+        android:layout_marginTop="8dp"
         android:ems="10"
         android:hint="@string/seconds"
-        android:inputType="numberDecimal"
 
+        android:inputType="numberDecimal"
         android:textSize="14sp"
-        app:layout_constraintBottom_toTopOf="@+id/switch1"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/textUpdateInterval"
+        app:layout_constraintHorizontal_bias="0.627"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintTop_toBottomOf="@+id/editCropRight"
+        app:layout_constraintVertical_bias="0.0" />
 
     <EditText
-        android:id="@+id/editVisibleCrop"
+        android:id="@+id/editCropLeft"
         android:layout_width="100dp"
         android:layout_height="48dp"
-        android:layout_marginStart="182dp"
-        android:layout_marginEnd="93dp"
+        android:layout_marginTop="8dp"
         android:ems="10"
-        android:hint="@string/_0_700"
+        android:hint="@string/pixels"
         android:inputType="number"
         android:textSize="14sp"
-        app:layout_constraintBottom_toTopOf="@+id/editUpdateInterval"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/textVisibleCrop"
+        app:layout_constraintHorizontal_bias="0.627"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/editBirthBlock"
-        app:layout_constraintVertical_bias="0.5" />
+        app:layout_constraintVertical_bias="0.0" />
+
 
     <TextView
         android:id="@+id/textBirthBlock"
@@ -53,73 +49,70 @@
         android:textColor="@color/design_default_color_primary"
         app:layout_constraintBottom_toBottomOf="@+id/editBirthBlock"
         app:layout_constraintEnd_toStartOf="@+id/editBirthBlock"
-        app:layout_constraintTop_toTopOf="@+id/editBirthBlock" />
-
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/editBirthBlock"
+        app:layout_constraintVertical_bias="0.448" />
 
     <Button
         android:id="@+id/buttonStartService"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="48dp"
-        android:layout_marginEnd="8dp"
         android:background="@color/white"
         android:padding="16dp"
         android:text="@string/start_service"
         android:textColor="#fff"
         app:backgroundTint="@android:color/holo_green_light"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintEnd_toStartOf="@+id/buttonStopService"
+        app:layout_constraintHorizontal_bias="0.678"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/bothCheckbox"
-        app:layout_constraintVertical_bias="0.278" />
+        app:layout_constraintTop_toBottomOf="@+id/lastUpdate"
+        app:layout_constraintVertical_bias="0.724" />
 
     <Button
         android:id="@+id/buttonStopService"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="42dp"
         android:background="@color/white"
         android:padding="16dp"
         android:text="@string/stop_service"
         android:textColor="#fff"
         app:backgroundTint="#ffff0000"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/buttonStartService"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.848"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonStartService"
-        app:layout_constraintVertical_bias="0.171" />
+        app:layout_constraintTop_toTopOf="@+id/buttonStartService" />
 
     <EditText
         android:id="@+id/editBirthBlock"
         android:layout_width="100dp"
         android:layout_height="48dp"
-        android:layout_marginStart="182dp"
-        android:layout_marginEnd="93dp"
         android:ems="10"
         android:hint="@string/_12884106"
         android:inputType="number"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/textBirthBlock"
+        app:layout_constraintHorizontal_bias="0.627"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.093" />
+        app:layout_constraintVertical_bias="0.06" />
 
     <TextView
         android:id="@+id/textVisibleCrop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="4dp"
-        android:text="@string/visible_crop_left_edge"
+        android:text="@string/cropLeft"
         android:textColor="@color/design_default_color_primary"
-        app:layout_constraintBottom_toBottomOf="@+id/editVisibleCrop"
-        app:layout_constraintEnd_toStartOf="@+id/editVisibleCrop"
-        app:layout_constraintTop_toTopOf="@+id/editVisibleCrop"
-        app:layout_constraintVertical_bias="0.517" />
+        app:layout_constraintBottom_toBottomOf="@+id/editCropLeft"
+        app:layout_constraintEnd_toStartOf="@+id/editCropLeft"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/editCropLeft"
+        app:layout_constraintVertical_bias="0.482" />
 
     <TextView
         android:id="@+id/settings"
@@ -143,45 +136,88 @@
         android:textColor="@color/design_default_color_primary"
         app:layout_constraintBottom_toBottomOf="@+id/editUpdateInterval"
         app:layout_constraintEnd_toStartOf="@+id/editUpdateInterval"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/editUpdateInterval"
-        app:layout_constraintVertical_bias="0.517" />
+        app:layout_constraintVertical_bias="0.413" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switch1"
-        android:layout_width="211dp"
-        android:layout_height="48dp"
-        android:layout_marginTop="152dp"
+        android:layout_width="218dp"
+        android:layout_height="47dp"
         android:text="@string/lockscreen_homescreen"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintEnd_toStartOf="@+id/bothCheckbox"
+        app:layout_constraintHorizontal_bias="0.828"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/editBirthBlock"
-        app:layout_constraintVertical_bias="0.0"
+        app:layout_constraintTop_toBottomOf="@+id/editUpdateInterval"
+        app:layout_constraintVertical_bias="0.049"
         tools:ignore="UseSwitchCompatOrMaterialXml" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/bothCheckbox"
-        android:layout_width="211dp"
-        android:layout_height="48dp"
+        android:layout_width="76dp"
+        android:layout_height="47dp"
         android:text="@string/both"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/switch1"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.877"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/switch1"
-        app:layout_constraintVertical_bias="0.025" />
+        app:layout_constraintTop_toTopOf="@+id/switch1"
+        app:layout_constraintVertical_bias="0.0" />
 
     <TextView
         android:id="@+id/lastUpdate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="last wallpaper update:"
-        app:layout_constraintBottom_toTopOf="@+id/buttonStartService"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_bias="0.538"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/bothCheckbox"
-        app:layout_constraintVertical_bias="0.484" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.83" />
+
+    <EditText
+        android:id="@+id/editCropRight"
+        android:layout_width="100dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:ems="10"
+        android:hint="@string/pixels"
+        android:inputType="number"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.627"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editCropLeft"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <TextView
+        android:id="@+id/textCropRight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:text="@string/cropRight"
+        android:textColor="@color/design_default_color_primary"
+        app:layout_constraintBottom_toBottomOf="@+id/editCropRight"
+        app:layout_constraintEnd_toStartOf="@+id/editCropRight"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/editCropRight" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        app:layout_constraintBottom_toTopOf="@+id/lastUpdate"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/switch1"
+        app:layout_constraintVertical_bias="0.409"
+        app:srcCompat="@drawable/ic_launcher_foreground" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

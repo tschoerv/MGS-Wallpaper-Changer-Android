@@ -17,16 +17,22 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class MyWorker extends Worker {
     String birthBlock = null;
-    String visibleCrop = null;
+    String cropLeft = null;
+    String cropRight = null;
     String bothLockAndHome = null;
     String lockOrHome = null;
     Integer updateIntervalMillis;
@@ -44,7 +50,8 @@ public class MyWorker extends Worker {
         if (updateIntervalString != null) {
             updateIntervalMillis = (Integer.parseInt(updateIntervalString));
         }
-        visibleCrop = getInputData().getString("_visibleCrop");
+        cropLeft = getInputData().getString("_cropLeft");
+        cropRight = getInputData().getString("_cropRight");
         birthBlock = getInputData().getString("_birthBlock");
         bothLockAndHome = getInputData().getString("_bothLockAndHome");
         lockOrHome = getInputData().getString("_LockOrHome");
@@ -56,43 +63,80 @@ public class MyWorker extends Worker {
     }
 
     private void setWallpaperTask(String _imgURL) {
-
-        try {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            try {
                 InputStream inputStream = new URL(_imgURL).openStream();
                 Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
                 inputStream.close();
 
-                Bitmap imageWithBG = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(),bitmap.getConfig());  // Create another image the same size
-                imageWithBG.eraseColor(Color.WHITE);  // set the background to white
-                Canvas canvas = new Canvas(imageWithBG);  // create a canvas to draw on the new image
-                canvas.drawBitmap(bitmap, 0f, 0f, null); // draw downloaded image on the background
-                bitmap.recycle();  // clear out old image
+                // Determine the amount to crop from the left and right sides
+                int cropLeftInt = 0;
+                if(cropLeft != null && !cropLeft.isEmpty()){
+                    cropLeftInt = Integer.parseInt(cropLeft);
+                }
 
-                // Set the image as the wallpaper
+                int cropRightInt = 0;
+                if(cropRight != null && !cropRight.isEmpty()){
+                    cropRightInt = Integer.parseInt(cropRight);
+                }
+
+                // Ensure cropLeft and cropRight are within the bitmaps width
+                cropLeftInt = Math.min(cropLeftInt, bitmap.getWidth());
+                cropRightInt = Math.min(cropRightInt, bitmap.getWidth() - cropLeftInt);
+
+                // Create a source rectangle from cropLeft to the width minus cropRight
+                Rect src = new Rect(cropLeftInt, 0, bitmap.getWidth() - cropRightInt, bitmap.getHeight());
+
+                // Create another image of the size of the src rectangle with a white background
+                Bitmap imageWithBG = Bitmap.createBitmap(src.width(), src.height(), bitmap.getConfig());
+                imageWithBG.eraseColor(Color.WHITE);
+                Canvas canvas = new Canvas(imageWithBG);
+                // Draw only the portion of the bitmap defined by src, scaled to fit the new bitmap
+                canvas.drawBitmap(bitmap, src, new Rect(0, 0, src.width(), src.height()), null);
+
+
+                // Convert the bitmap to a file
+                File wallpaperFile = saveBitmapToFile(imageWithBG);
+
                 WallpaperManager wallpaperManager = WallpaperManager.getInstance(getApplicationContext());
 
-               if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    //Set wallpaper on both screens
+                // Set the image as the wallpaper based on user choice
+                try (InputStream fileInputStream = new FileInputStream(wallpaperFile)) {
                     if (Objects.equals(bothLockAndHome, "true")) {
-                        wallpaperManager.setBitmap(imageWithBG, new Rect(Integer.parseInt(visibleCrop), 0, imageWithBG.getWidth(), imageWithBG.getHeight()), true );
-                        saveLastUpdateTime();
+                        wallpaperManager.setStream(fileInputStream);
+                    } else if (Objects.equals(lockOrHome, "true")) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            wallpaperManager.setStream(fileInputStream, null, true, WallpaperManager.FLAG_SYSTEM);
+                        }
+                    } else {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            wallpaperManager.setStream(fileInputStream, null, true, WallpaperManager.FLAG_LOCK);
+                        }
                     }
-                    //Set wallpaper on Lockscreen
-                    else if (Objects.equals(bothLockAndHome, "false") && Objects.equals(lockOrHome, "false")){
-                        wallpaperManager.setBitmap(imageWithBG, new Rect(Integer.parseInt(visibleCrop), 0, imageWithBG.getWidth(), imageWithBG.getHeight()), true, WallpaperManager.FLAG_LOCK );
-                        saveLastUpdateTime();
-
-                    }
-                    //Set wallpaper on Home-screen
-                    else if (Objects.equals(bothLockAndHome, "false") && Objects.equals(lockOrHome, "true")){
-                        wallpaperManager.setBitmap(imageWithBG, new Rect(Integer.parseInt(visibleCrop), 0, imageWithBG.getWidth(), imageWithBG.getHeight()), true, WallpaperManager.FLAG_SYSTEM );
-                        saveLastUpdateTime();
-                    }
+                    saveLastUpdateTime();
                 }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        });
+        executor.shutdown();
+    }
+
+
+
+    private File saveBitmapToFile(Bitmap bitmap) throws IOException {
+        // Create a file in the app's cache directory
+        File cacheDir = getApplicationContext().getCacheDir();
+        File wallpaperFile = new File(cacheDir, "wallpaper.png");
+
+        try (FileOutputStream out = new FileOutputStream(wallpaperFile)) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // PNG is a lossless format, the compression factor (100) is ignored
         }
+
+        return wallpaperFile;
+    }
 
 
 
