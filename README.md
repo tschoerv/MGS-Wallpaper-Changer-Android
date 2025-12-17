@@ -1,6 +1,6 @@
 # Mutant Garden Seeder Wallpaper Changer Android
 
-![App screenshot](screenshots/screenshot_1.jpg)
+<img src="screenshots/screenshot_1.jpg" alt="App screenshot" width="320" />
 
 [Download APK](app/release/MGS-Wallpaper-Changer-V2.0.apk)
 
