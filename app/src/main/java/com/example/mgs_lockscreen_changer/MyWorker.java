@@ -26,9 +26,20 @@ public class MyWorker extends Worker {
         int cropRight = parseIntSafe(getInputData().getString("_cropRight"));
         int[] limitedCrops = limitTotalCrop(cropLeft, cropRight);
 
-        boolean applyToBoth = getInputData().getBoolean("_bothLockAndHome", false);
-        boolean applyToHome = getInputData().getBoolean("_lockOrHome",
-                getInputData().getBoolean("_LockOrHome", false));
+        boolean applyToBoth;
+        boolean applyToHome;
+        String mode = getInputData().getString("wallpaperMode");
+        if ("both".equals(mode)) {
+            applyToBoth = true;
+            applyToHome = false;
+        } else if ("home".equals(mode)) {
+            applyToBoth = false;
+            applyToHome = true;
+        } else {
+            applyToBoth = getInputData().getBoolean("_bothLockAndHome", false);
+            applyToHome = getInputData().getBoolean("_lockOrHome",
+                    getInputData().getBoolean("_LockOrHome", false));
+        }
 
         try {
             WallpaperUpdater.updateWallpaper(

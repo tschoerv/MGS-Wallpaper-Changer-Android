@@ -8,14 +8,16 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.SwitchCompat;
 import androidx.work.Constraints;
 import androidx.work.Data;
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -39,9 +41,9 @@ public class MainActivity extends AppCompatActivity {
     Button btnStartService, btnStopService;
     EditText eUpdateInterval, eBirthBlock, eCropLeft, eCropRight;
     TextView tLastUpdate;
-    SwitchCompat switchLH, bothCheckbox;
-    boolean bothLockAndHome = false;
-    boolean lockOrHome = false;
+    RadioGroup wallpaperModeGroup;
+    RadioButton radioLock, radioHome, radioBoth;
+    String wallpaperMode = "lock";
     ImageView imageViewUncropped;
 
 
@@ -60,20 +62,26 @@ public class MainActivity extends AppCompatActivity {
 
         tLastUpdate = findViewById(R.id.lastUpdate);
 
-        switchLH = findViewById(R.id.switch1);
-        bothCheckbox = findViewById(R.id.bothCheckbox);
+        wallpaperModeGroup = findViewById(R.id.wallpaperModeGroup);
+        radioLock = findViewById(R.id.radioLock);
+        radioHome = findViewById(R.id.radioHome);
+        radioBoth = findViewById(R.id.radioBoth);
 
         imageViewUncropped = findViewById(R.id.imageView);
 
 
-        bothCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> bothLockAndHome = isChecked);
-
-        switchLH.setOnCheckedChangeListener((buttonView, isChecked) -> lockOrHome = isChecked);
+        wallpaperModeGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.radioHome) {
+                wallpaperMode = "home";
+            } else if (checkedId == R.id.radioBoth) {
+                wallpaperMode = "both";
+            } else {
+                wallpaperMode = "lock";
+            }
+        });
 
         tLastUpdate.setOnClickListener(v -> {
-            SharedPreferences sh = getSharedPreferences("userPref", Context.MODE_PRIVATE);
-            String lastUpdate = getString(R.string.last_wallpaper_update, sh.getString("_lastUpdate", ""));
-            tLastUpdate.setText(lastUpdate);
+            updateLastUpdateText();
         });
 
         btnStartService.setOnClickListener(v -> startService());
@@ -118,9 +126,13 @@ public class MainActivity extends AppCompatActivity {
 
         long flexIntervalMillis = Math.max((long) (updateIntervalMillis * 0.1), PeriodicWorkRequest.MIN_PERIODIC_FLEX_MILLIS);
 
+        boolean applyToBoth = wallpaperMode.equals("both");
+        boolean applyToHome = wallpaperMode.equals("home");
+
         SharedPreferences sharedPreferences = getSharedPreferences("userPref", MODE_PRIVATE);
         sharedPreferences.edit()
                 .putString("_updateInterval", String.valueOf(updateIntervalMillis))
+                .putString("_wallpaperMode", wallpaperMode)
                 .apply();
 
         Constraints constraints = new Constraints.Builder()
@@ -132,8 +144,10 @@ public class MainActivity extends AppCompatActivity {
                 .putString("_cropLeft", eCropLeft.getText().toString())
                 .putString("_cropRight", eCropRight.getText().toString())
                 .putString("_birthBlock", birthBlock)
-                .putBoolean("_bothLockAndHome", bothLockAndHome)
-                .putBoolean("_lockOrHome", lockOrHome)
+                .putString("wallpaperMode", wallpaperMode)
+                // legacy keys for backward compatibility with older worker fields
+                .putBoolean("_bothLockAndHome", applyToBoth)
+                .putBoolean("_lockOrHome", applyToHome)
                 .build();
 
         PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(MyWorker.class, updateIntervalMillis, TimeUnit.MILLISECONDS, flexIntervalMillis, TimeUnit.MILLISECONDS)
@@ -147,13 +161,16 @@ public class MainActivity extends AppCompatActivity {
                 request
         );
 
-        triggerImmediateUpdate(birthBlock, cropValues[0], cropValues[1]);
+        triggerImmediateUpdate(birthBlock, cropValues[0], cropValues[1], applyToBoth, applyToHome);
+        updateButtons(true);
+        updateLastUpdateText();
 
         Toast.makeText(this, "Wallpaper schedule saved", Toast.LENGTH_SHORT).show();
     }
 
     public void stopService() {
         WorkManager.getInstance(MainActivity.this).cancelUniqueWork("updateWorker");
+        updateButtons(false);
         Toast.makeText(this, "Service stopped", Toast.LENGTH_SHORT).show();
     }
 
@@ -186,14 +203,23 @@ public class MainActivity extends AppCompatActivity {
         eCropLeft.setText(sh.getString("_cropLeft", ""));
         eCropRight.setText(sh.getString("_cropRight", ""));
         eBirthBlock.setText(sh.getString("_birthBlock", ""));
-        String lastUpdate = getString(R.string.last_wallpaper_update, sh.getString("_lastUpdate", ""));
-        tLastUpdate.setText(lastUpdate);
+        updateLastUpdateText();
 
-        bothLockAndHome = Boolean.parseBoolean(sh.getString("_bothLockAndHome", "false"));
-        String lockOrHomePref = sh.getString("_lockOrHome", sh.getString("_LockOrHome", "false"));
-        lockOrHome = Boolean.parseBoolean(lockOrHomePref);
-        bothCheckbox.setChecked(bothLockAndHome);
-        switchLH.setChecked(lockOrHome);
+        wallpaperMode = sh.getString("_wallpaperMode", null);
+        if (wallpaperMode == null) {
+            boolean legacyBoth = Boolean.parseBoolean(sh.getString("_bothLockAndHome", "false"));
+            boolean legacyHome = Boolean.parseBoolean(sh.getString("_lockOrHome", "false"));
+            wallpaperMode = legacyBoth ? "both" : legacyHome ? "home" : "lock";
+        }
+        if ("home".equals(wallpaperMode)) {
+            wallpaperModeGroup.check(radioHome.getId());
+        } else if ("both".equals(wallpaperMode)) {
+            wallpaperModeGroup.check(radioBoth.getId());
+        } else {
+            wallpaperModeGroup.check(radioLock.getId());
+        }
+
+        updateButtons(checkWorkerState());
     }
 
     @Override
@@ -207,14 +233,13 @@ public class MainActivity extends AppCompatActivity {
         myEdit.putString("_cropLeft", eCropLeft.getText().toString());
         myEdit.putString("_cropRight", eCropRight.getText().toString());
         myEdit.putString("_birthBlock", eBirthBlock.getText().toString());
-        myEdit.putString("_bothLockAndHome", Boolean.toString(bothLockAndHome));
-        myEdit.putString("_lockOrHome", Boolean.toString(lockOrHome));
+        myEdit.putString("_wallpaperMode", wallpaperMode);
 
         myEdit.apply();
     }
 
 
-    private void triggerImmediateUpdate(String birthBlock, int cropLeft, int cropRight) {
+    private void triggerImmediateUpdate(String birthBlock, int cropLeft, int cropRight, boolean applyToBoth, boolean applyToHome) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Handler handler = new Handler(Looper.getMainLooper());
 
@@ -225,14 +250,12 @@ public class MainActivity extends AppCompatActivity {
                         buildImageUrl(birthBlock),
                         cropLeft,
                         cropRight,
-                        bothLockAndHome,
-                        lockOrHome
+                        applyToBoth,
+                        applyToHome
                 );
                 handler.post(() -> {
                     loadImageIntoImageView();
-                    SharedPreferences sh = getSharedPreferences("userPref", Context.MODE_PRIVATE);
-                    String lastUpdate = getString(R.string.last_wallpaper_update, sh.getString("_lastUpdate", ""));
-                    tLastUpdate.setText(lastUpdate);
+                    updateLastUpdateText();
                 });
             } catch (IOException e) {
                 e.printStackTrace();
@@ -283,5 +306,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         executor.shutdown();
+    }
+
+    private void updateLastUpdateText() {
+        SharedPreferences sh = getSharedPreferences("userPref", Context.MODE_PRIVATE);
+        String stored = sh.getString("_lastUpdate", "");
+        String displayValue = stored == null || stored.isEmpty() ? "not yet" : stored;
+        tLastUpdate.setText(getString(R.string.last_wallpaper_update, displayValue));
+    }
+
+    private void updateButtons(boolean running) {
+        btnStartService.setVisibility(running ? View.GONE : View.VISIBLE);
+        btnStopService.setVisibility(running ? View.VISIBLE : View.GONE);
     }
 }
