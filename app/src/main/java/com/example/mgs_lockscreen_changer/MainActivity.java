@@ -303,6 +303,12 @@ public class MainActivity extends AppCompatActivity {
                         imageViewUncropped.setImageBitmap(bitmap);
                     }
                 });
+            } else {
+                handler.post(() -> {
+                    if (imageViewUncropped != null && !isFinishing()) {
+                        imageViewUncropped.setImageResource(R.mipmap.ic_launcher);
+                    }
+                });
             }
         });
         executor.shutdown();
